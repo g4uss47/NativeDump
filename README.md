@@ -9,35 +9,55 @@ NativeDump allows to dump the lsass process using only NTAPIs generating a Minid
 - NtQueryInformationProcess and NtReadVirtualMemory to get the lsasrv.dll address. This is the only module necessary for the ModuleList Stream
 - NtOpenProcess to get a handle for the lsass process
 - NtQueryVirtualMemory and NtReadVirtualMemory to loop through the memory regions and dump all possible ones. At the same time it populates the Memory64List Stream
+
+
 <br>
 
-Usage:
+The program has one optional argument for the output file, the default file name is "proc_\<PID\>.dmp":
 
 ```
 NativeDump.exe [DUMP_FILE]
 ```
 
-The default file name is "proc_<PID>.dmp":
-
 ![poc](https://raw.githubusercontent.com/ricardojoserf/ricardojoserf.github.io/master/images/nativedump/Screenshot_1.png)
 
-The tool has been tested against Windows 10 and 11 devices with the most common security solutions (Microsoft Defender for Endpoints, Crowdstrike...) and is for now undetected. However, it does not work if PPL is enabled in the system.
+The tool has been tested against Windows 10 and 11 devices with the most common security solutions (Microsoft Defender for Endpoints, Crowdstrike...) and is for now undetected. However, it does not work if PPL is enabled ~~or PEB structure is not readable~~. **Update**: Now it is possible to execute the programs without reading the PEB, check the [peb-unreadable branch](https://github.com/ricardojoserf/NativeDump/tree/peb-unreadable) :)
 
 Some benefits of this technique are:
 - It does not use the well-known dbghelp!MinidumpWriteDump function
 - It only uses functions from Ntdll.dll, so it is possible to bypass API hooking by remapping the library
 - The Minidump file does not have to be written to disk, you can transfer its bytes (encoded or encrypted) to a remote machine
 
-The project has three branches at the moment (apart from the main branch with the basic technique):
+You can find the project in different flavours (or languages):
 
-- [ntdlloverwrite](https://github.com/ricardojoserf/NativeDump/tree/ntdlloverwrite) - Overwrite ntdll.dll's ".text" section using a clean version from the DLL file already on disk
+- [main](https://github.com/ricardojoserf/NativeDump/tree/main) - **.NET** basic implementation (this branch)
+  
+- [python-flavour](https://github.com/ricardojoserf/NativeDump/tree/python-flavour) - **Python** implementation with 3 ntdll.dll overwrite methods + Exfiltrate to remote machine 
 
-- [delegates](https://github.com/ricardojoserf/NativeDump/tree/delegates) - Overwrite ntdll.dll + Dynamic function resolution + String encryption with AES  + XOR-encoding
+- [golang-flavour](https://github.com/ricardojoserf/NativeDump/tree/golang-flavour) - **Golang** implementation with 3 ntdll.dll overwrite methods + Exfiltrate to remote machine 
 
-- [remote](https://github.com/ricardojoserf/NativeDump/tree/remote) - Overwrite ntdll.dll + Dynamic function resolution + String encryption with AES + Send file to remote machine + XOR-encoding
+- [c-flavour](https://github.com/ricardojoserf/NativeDump/tree/c-flavour) - **C/C++** implementation with 3 ntdll.dll overwrite methods
+
+- [bof-flavour](https://github.com/ricardojoserf/NativeDump/tree/bof-flavour) - **BOF file** with 3 ntdll.dll overwrite methods
+
+- [rust-flavour](https://github.com/safedv/RustiveDump) - **Rust** implementation by @safedv
+
+- [crystal-flavour](https://github.com/ricardojoserf/NativeDump/tree/crystal-flavour) - **Crystal** implementation with ntdll.dll overwrite capabilities
+
+Other interesting branches using .NET:
+
+- [remote](https://github.com/ricardojoserf/NativeDump/tree/remote) - Exfiltrate to remote machine + 3 ntdll.dll overwrite methods + Dynamic function resolution + String AES encryption + XOR-encoding Minidump content
+
+- [all-modules](https://github.com/ricardojoserf/NativeDump/tree/all-modules) - Get the information for all modules (not only lsasrv.dll)
+
+- [peb-unreadable](https://github.com/ricardojoserf/NativeDump/tree/peb-unreadable) - Implementation without reading lsass' PEB structure + 3 ntdll.dll overwrite methods
+
+
+<!-- - [ntdlloverwrite](https://github.com/ricardojoserf/NativeDump/tree/ntdlloverwrite) - Overwrite ntdll.dll library using a clean version from a DLL file already on disk -->
 
 <br>
 
+-----------------------------
 
 ## Technique in detail: Creating a minimal Minidump file
 
@@ -50,9 +70,7 @@ After reading Minidump undocumented structures, its structure can be summed up t
 
 ![estructure](https://raw.githubusercontent.com/ricardojoserf/ricardojoserf.github.io/master/images/nativedump/minidump_structure.png)
 
-I created a parsing tool which can be helpful: [MinidumpParser](https://github.com/ricardojoserf/MinidumpParser).
-
-We will focus on creating a valid file with only the necessary values for the header, stream directory and the only 3 streams needed for a Minidump file to be parsed by Mimikatz/Pypykatz: SystemInfo, ModuleList and Memory64List Streams.
+I created a parsing tool which can be helpful: [MinidumpParser](https://github.com/ricardojoserf/MinidumpParser). We will focus on creating a valid file with only the necessary values for the header, stream directory and the only 3 streams needed for a Minidump file to be parsed by Mimikatz/Pypykatz: SystemInfo, ModuleList and Memory64List Streams.
 
 ---------------------
 
@@ -251,3 +269,10 @@ With this it is possible to traverse process memory by calling:
 After previous steps we have all that is necessary to create the Minidump file. We can create a file locally or send the bytes to a remote machine, with the possibility of encoding or encrypting the bytes before. Some of these possibilities are coded in the [delegates branch](https://github.com/ricardojoserf/NativeDump/tree/delegates), where the file created locally can be encoded with XOR, and in the [remote branch](https://github.com/ricardojoserf/NativeDump/tree/remote), where the file can be encoded with XOR before being sent to a remote machine.
 
 <br>
+
+
+------------------------------------------------------------
+
+## ⭐ Support This Project by Starring the Repository!
+
+If you find this project helpful or interesting, please consider giving it a star 🌟 on GitHub! :)
